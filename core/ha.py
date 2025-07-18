@@ -1,15 +1,10 @@
-import os
-
 import aiohttp
 
-
-HA_URL = os.getenv("HA_URL")
-HA_TOKEN = os.getenv("HA_TOKEN")
-HA_LANG = os.getenv("HA_LANG", "en")
+from core.config import HA_HOST, HA_LANG, HA_TOKEN
 
 
 def ha_available():
-    return bool(HA_URL and HA_TOKEN)
+    return bool(HA_HOST and HA_TOKEN)
 
 
 async def send_conversation_prompt(prompt: str) -> str | None:
@@ -17,7 +12,7 @@ async def send_conversation_prompt(prompt: str) -> str | None:
         print("⚠️ Home Assistant not configured.")
         return None
 
-    url = f"{HA_URL.rstrip('/')}/api/conversation/process"
+    url = f"{HA_HOST.rstrip('/')}/api/conversation/process"
     headers = {
         "Authorization": f"Bearer {HA_TOKEN}",
         "Content-Type": "application/json",

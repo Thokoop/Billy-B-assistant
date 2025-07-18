@@ -1,0 +1,18 @@
+[Unit]
+Description=Billy Wi-Fi Onboarding Startup Check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 15
+ExecStart=/home/billy/billy-b-assistant/setup/wifi_check.sh
+WorkingDirectory=/home/billy/billy-b-assistant/setup
+Restart=on-failure
+User=root
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+StandardOutput="journal"
+StandardError="journal"
+
+[Install]
+WantedBy=multi-user.target

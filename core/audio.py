@@ -131,6 +131,13 @@ def playback_worker(chunk_ms):
                         print(f"🐟 Head move started for {move_duration:.2f} seconds")
 
                 if item is None:
+                    print("🧵 Received stop signal, cleaning up.")
+                    try:
+                        from .movements import stop_all_motors
+
+                        stop_all_motors()
+                    except Exception as e:
+                        print(f"❌ Failed to stop motors: {e}")
                     playback_queue.task_done()
                     break
 

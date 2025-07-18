@@ -1,3 +1,4 @@
+import asyncio
 import configparser
 import os
 
@@ -67,9 +68,7 @@ INSTRUCTIONS = (
 )
 
 # === OpenAI Config ===
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("❌ OPENAI_API_KEY is not set in the .env file.")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 VOICE = os.getenv("VOICE", "ash")
 
 # === Modes ===
@@ -96,7 +95,17 @@ MQTT_PORT = int(os.getenv("MQTT_PORT", "0"))
 MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 
+# === Home Assistant Config ===
+HA_HOST = os.getenv("HA_HOST")
+HA_TOKEN = os.getenv("HA_TOKEN")
+HA_LANG = os.getenv("HA_LANG", "en")
+
 # === Personality Config ===
 ALLOW_UPDATE_PERSONALITY_INI = (
     os.getenv("ALLOW_UPDATE_PERSONALITY_INI", "true").lower() == "true"
 )
+
+try:
+    MAIN_LOOP = asyncio.get_event_loop()
+except RuntimeError:
+    MAIN_LOOP = None

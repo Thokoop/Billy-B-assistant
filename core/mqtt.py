@@ -22,6 +22,7 @@ def on_connect(client, userdata, flags, rc):
         print("🔌 MQTT connected successfully!")
         mqtt_send_discovery()
         client.subscribe("billy/command")
+        client.subscribe("billy/say")
     else:
         print(f"⚠️ MQTT connection failed with code {rc}")
 
@@ -91,7 +92,7 @@ def mqtt_send_discovery():
             "identifiers": ["billy_bass"],
             "name": "Big Mouth Billy Bass",
             "model": "Billy Bassistant",
-            "manufacturer": "DIY",
+            "manufacturer": "Thom Koopman",
         },
     }
     mqtt_client.publish(
@@ -110,7 +111,7 @@ def mqtt_send_discovery():
             "identifiers": ["billy_bass"],
             "name": "Big Mouth Billy Bass",
             "model": "Billy Bassistant",
-            "manufacturer": "DIY",
+            "manufacturer": "Thom Koopman",
         },
     }
     mqtt_client.publish(
@@ -119,9 +120,28 @@ def mqtt_send_discovery():
         retain=True,
     )
 
+    payload_text_input = {
+        "name": "Billy Say",
+        "unique_id": "billy_say",
+        "command_topic": "billy/say",
+        "mode": "text",
+        "max": 255,
+        "device": {
+            "identifiers": ["billy_bass"],
+            "name": "Big Mouth Billy Bass",
+            "model": "Billy Bassistant",
+            "manufacturer": "Thom Koopman",
+        },
+    }
+    mqtt_client.publish(
+        "homeassistant/text/billy/say/config",
+        json.dumps(payload_text_input),
+        retain=True,
+    )
+
 
 def on_message(client, userdata, msg):
-    print(f" \n📩 MQTT message received: {msg.topic} = {msg.payload.decode()}")
+    print(f" \n📩 MQTT message received: {msg.topic} = {msg.payload.decode()} ")
     if msg.topic == "billy/command":
         command = msg.payload.decode().strip().lower()
         if command == "shutdown":
@@ -132,3 +152,36 @@ def on_message(client, userdata, msg):
                 print(f"\n⚠️ Error stopping motors: {e}")
             stop_mqtt()
             subprocess.Popen(["sudo", "shutdown", "now"])
+    elif msg.topic == "billy/say":
+        print(f"📩 Received SAY command: {msg.payload.decode()}")
+
+        try:
+            import asyncio
+
+            from core.say import say
+
+            try:
+                data = json.loads(msg.payload.decode())
+                if isinstance(data, dict):
+                    text = data.get("text", "").strip()
+                    literal = bool(data.get("literal", True))
+                else:
+                    text = str(data).strip()
+                    literal = False
+            except json.JSONDecodeError:
+                text = msg.payload.decode().strip()
+                literal = True
+
+            if text:
+
+                def run_say():
+                    asyncio.run(say(text=text, literal=literal))
+
+                import threading
+
+                threading.Thread(target=run_say, daemon=True).start()
+            else:
+                print("⚠️ SAY command received, but text was empty")
+
+        except Exception as e:
+            print(f"❌ Failed to run say(): {e}")

@@ -17,7 +17,12 @@ It streams conversation using the OpenAI Realtime API, turns its head, flaps it'
 - Head and mouth motion controlled via GPIO and PWM
 - Physical button to start/interact/intervene
 - Personality system with configurable traits (e.g., snark, charm)
-- MQTT support for status updates
+- MQTT support:
+ - for status updates (idle, speaking, listening)
+ - `billy/say` topic for triggering spoken messages remotely (feature in beta)
+ - Raspberry Pi Safe Shutdown command
+- Home Assistant command passthrough using the Conversation API
+- Lightweight web UI for editing configuration, logs, and systemd service control
 - Custom Song Singing and animation mode
 
 ---
@@ -136,14 +141,13 @@ See [BUILDME.md for detailed build/wiring instructions.](./docs/BUILDME.md)
 
 ## 7. Create your `.env` file
 
-Before running the project, you'll need to create a `.env` file in the root of the `billy-b-assistant` folder.
-Copy `.env.example` to `.env` 
-```bash
-cp .env.example .env
-```
+When first running the project, it will create a `.env` file in the root of the `billy-b-assistant` folder by copying `.env.example` to `.env` 
 
 This file is used to configure your environment, including the [OpenAI API key](https://platform.openai.com/api-keys) and (optional) mqtt settings. 
 This file can also be used to overwrite some of the default config settings (like the voice of billy) that you can find in config.py.
+
+Updates to the settings via the Web UI will also be saved here.  
+(The DEBUG_MODE_* settings are not exposed in the UI)
 
 ### Example `.env` file
 
@@ -180,7 +184,10 @@ DEBUG_MODE_INCLUDE_DELTA=false
 ## 8. Systemd Service (for auto-boot)
 
 To run Billy as a background service at boot, create `/etc/systemd/system/billy.service`:
-(Assuming 'billy' is the raspberry pi username)
+
+```bash
+sudo nano /etc/systemd/system/billy.service
+```
 
 ```ini
 [Unit]
@@ -197,6 +204,8 @@ Environment=PYTHONUNBUFFERED=1
 [Install]
 WantedBy=multi-user.target
 ```
+
+\* Assuming 'billy' is the raspberry pi username
 
 Then run: 
 ```
@@ -218,9 +227,77 @@ Billy should now boot automatically into standby mode. Press the physical button
 
 ---
 
-## 10. (Optional) Configure `persona.ini`
+## 10. (Optional) 🌐 Web Configuration Interface
 
-The `persona.ini` file controls Billy's **personality**, **backstory**, and **additional instructions**. You can edit this file manually, or change the personality trait values during a voice session using commands like:
+Billy includes a lightweight web interface for editing settings, debugging logs, and managing the assistant service without touching the terminal.
+
+### Features
+
+- Edit `.env` configuration values (e.g., API keys, MQTT)
+- View and edit `persona.ini` (traits, backstory, instructions)
+- Control the Billy system service (start, stop, restart)
+- View live logs from the assistant process
+
+### How to Use
+
+1. Run the web server manually (from the project root):
+
+   ```bash
+   python3 webconfig/server.py
+   ```
+
+2. Enter the your pi's hostname + .local in your browser:
+
+   ```
+   http://billy.local
+   ```
+
+   (Replace `billy` if you have set a custom Pi's hostname)
+
+---
+
+### Run the Web UI as a Systemd Service
+
+If you want the web interface to always be available:
+
+1. Create the service file:
+
+   ```bash
+   sudo nano /etc/systemd/system/billy-webconfig.service
+   ```
+
+2. Paste the following:
+
+   ```ini
+   [Unit]
+   Description=Billy Web Configuration Server
+   After=network.target
+
+   [Service]
+   WorkingDirectory=/home/billy/billy-b-assistant
+   ExecStart=/usr/bin/python3 /home/billy/billy-b-assistant/webconfig/server.py
+   Restart=on-failure
+   User=billy
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+3. Enable and start:
+
+   ```bash
+   sudo setcap 'cap_net_bind_service=+ep' /usr/bin/python3.11
+   sudo systemctl daemon-reload
+   sudo systemctl enable billy-webconfig
+   sudo systemctl start billy-webconfig
+   ```
+
+4. Visit `http://billy.local` anytime to reconfigure Billy!
+
+## 11. (Optional) Configure `persona.ini`
+
+The `persona.ini` file controls Billy's **personality**, **backstory**, and **additional instructions**.
+This file will also be created on first run. You can edit this file manually, via the Web UI,  or change the personality trait values during a voice session using commands like:
 
 - “What is your humor setting?”
 - “Set sarcasm to 80%”
@@ -278,7 +355,7 @@ You can tweak this to reflect a different vibe: poetic, mystical, overly formal,
 
 ---
 
-## 11. (Optional) Wake-up Sounds and Custom Songs
+## 12. (Optional) Wake-up Sounds and Custom Songs
 
 ### Wake-up Sounds
 
@@ -345,7 +422,7 @@ If the folder exists it will play the contents with full animation.
 
 ---
 
-## 12. (Optional) 🏠 Home Assistant Integration
+## 13. (Optional) 🏠 Home Assistant Integration
 
 Billy B-Assistant can send smart home commands to your **Home Assistant** instance using its [Conversation API](https://developers.home-assistant.io/docs/api/rest/#post-apiconversationprocess). 
 This lets you say things to Billy like:
@@ -403,10 +480,9 @@ Mismatched language settings may cause parsing errors or incorrect target resolu
 ## Future Ideas
 
 Here are some ideas that I have for features in upcoming releases:
-- **Extended mqtt functionality**  for example an announcement mode
-- **Install script / easier software updates**
-- **Web UI** for easier configuration
+- Work in Progress: **Install script / easier software updates**
 - **Local TTS and STT fallback**
+- **Local custom wake-word detection**
 
 ## Support the Project
 Billy B-Assistant is a project built and maintained for fun and experimentation, free for **personal** and **educational** use.

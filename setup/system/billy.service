@@ -1,0 +1,13 @@
+[Unit]
+Description=Billy Bass Assistant
+After=network.target sound.target
+
+[Service]
+WorkingDirectory=/home/billy/billy-b-assistant
+ExecStart=/usr/bin/python3 /home/billy/billy-b-assistant/main.py
+Restart=always
+User=billy
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

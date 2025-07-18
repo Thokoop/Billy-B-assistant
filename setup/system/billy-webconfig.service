@@ -1,0 +1,12 @@
+[Unit]
+Description=Billy Web Configuration Server
+After=network.target
+
+[Service]
+WorkingDirectory=/home/billy/billy-b-assistant
+ExecStart=/usr/bin/python3 /home/billy/billy-b-assistant/webconfig/server.py
+Restart=on-failure
+User=billy
+
+[Install]
+WantedBy=multi-user.target

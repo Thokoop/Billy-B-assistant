@@ -1,2 +1,7 @@
 .idea
-billy-b-assistant/.env
+.env
+persona.ini
+versions.ini
+*.DS_Store
+webconfig/node_modules
+core/__pycache__/

@@ -9,4 +9,6 @@ paho-mqtt
 requests
 openai
 aiohttp
+flask
 lgpio
+packaging

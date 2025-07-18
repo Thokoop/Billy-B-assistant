@@ -72,3 +72,31 @@ All notable changes to this project will be documented in this file.
 - Fixed potential undefined variable.
 - Fixed usage of legacy `websockets` API.
 - Added missing dependencies: `aiohttp`, `lgpio`.
+
+## [1.2.0] — 2025-07-??
+
+### Web UI 
+
+### Added
+- Web-based user interface for configuration
+- Version check and updater with `versions.ini`.
+- Speaker volume test and control in UI.
+- Tailwind CSS included locally for styling.
+- Password field visibility toggles in the UI.
+- Dropdown for selecting voice options in UI.
+- Mic input level check utility.
+- Frontend notifications and layout styling.
+- Config save reliability from the web UI.
+- Audio settings section in UI.
+- Versioning check logic during boot.
+- Bugfixes in early version updater.
+
+### Improved
+- Folder structure simplified and clarified.
+- Automatic creation of `.env` and `persona.ini` from *.example files on first run.
+- Committed `persona.ini`; now ignored by `.gitignore`.
+
+### Added in beta
+- MQTT "say" command integration.
+- Systemd service install process.
+- Wi-Fi onboarding form with country selection.

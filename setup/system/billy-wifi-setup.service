@@ -1,0 +1,15 @@
+[Unit]
+Description=Billy Flask Wi-Fi Setup
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/billy/billy-b-assistant/setup
+ExecStart=/usr/bin/python3 /home/billy/billy-b-assistant/setup/wifi_setup.py
+Restart=on-failure
+Environment="PYTHONBUFFERED=1"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Billy B-Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+<!--    <link href="../static/css/styles.css" rel="stylesheet">-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* Scrollbar styling for WebKit browsers */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* Tailwind zinc-600 */
+            border-radius: 5px;
+            border: 2px solid #1a1a1a;
+        }
+
+        .log-fullscreen {
+            position: fixed !important;
+            inset: 0;
+            z-index: 50;
+            background-color: black;
+            padding: 1rem;
+            max-height: none !important;
+            height: 100vh;
+            overflow-y: auto !important;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-sans">
+
+<!-- 🐟 Billy Header with Controls & Log Buttons -->
+<header class="px-6 py-4 z-20 space-y-2 max-w-6xl mx-auto sticky top-0 border-b border-black bg-black/50 backdrop-blur-[4px] shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+    <div class="flex flex-row flex-wrap md:items-center justify-between gap-2">
+        <h1 class="text-2xl font-bold flex-shrink-0 w-full md:w-auto">🐟 Billy B-Assistant
+            <span id="service-status" class="text-sm font-normal">(Loading...)</span>
+        </h1>
+        <div id="service-controls" class="flex gap-2 grow md:mx-10">
+            <!-- Service buttons inserted via JS -->
+        </div>
+        <div class="flex items-center gap-2 grow justify-end">
+            <div id="version-info" class="text-sm text-zinc-300 flex flex-col md:items-end">
+                <span id="current-version">Current: ...</span>
+                <span id="latest-version" class="hidden text-amber-400">Latest: ...</span>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button id="update-btn"
+                        class="hidden bg-amber-500 hover:bg-amber-400 text-black text-sm py-1 px-3 rounded">
+                    Update Available
+                </button>
+            </div>
+        </div>
+        <div>
+            <button id="toggle-log-btn"
+                    class="bg-zinc-700 hover:bg-zinc-600 text-white text-sm py-1 px-3 rounded">
+                Show Debug
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Panel -->
+    <section id="log-panel" class="relative hidden">
+        <!-- Normal Log View -->
+        <div id="log-container"
+             class="relative px-4 rounded max-h-96 overflow-y-scroll text-sm transition-all duration-300">
+
+            <!-- Fullscreen Button (top right) -->
+            <button id="toggle-fullscreen-btn"
+                    class="sticky top-2 left-full right-2 bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1 rounded z-10 shadow flex items-center justify-center"
+                    title="Toggle Fullscreen Log">
+                <span class="material-icons" id="fullscreen-icon">fullscreen</span>
+            </button>
+
+            <pre id="log-output"
+                 class="text-emerald-300 whitespace-pre-wrap break-words overflow-x-hidden max-w-full">Loading logs…</pre>
+
+            <!-- Scroll-to-bottom Button (bottom right) -->
+            <button id="scroll-bottom-btn"
+                    title="Auto-scroll"
+                    class="sticky bottom-2 left-full ml-auto bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1 rounded z-10 shadow flex items-center justify-center">
+                <span class="material-icons">arrow_downward</span>
+            </button>
+        </div>
+    </section>
+
+    <div id="notification"
+         class="hidden w-full fixed top-0 left-0 text-center bg-emerald-600/80 backdrop-blur-[2px] text-white font-semibold py-2 px-4 rounded shadow-lg z-50 transition-opacity duration-300"></div>
+
+</header>
+
+<!-- Section 2–4 in responsive grid layout -->
+<main id="main-content" class="p-6 max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Settings Form -->
+        <section>
+            <form id="config-form" class="space-y-6">
+
+                <!-- OpenAI Settings -->
+                <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-bold mb-4 text-slate-200">OpenAI Settings</h3>
+
+                    <div class="mb-4">
+                        <label for="OPENAI_API_KEY" class="block font-semibold text-sm text-slate-300">
+                            OpenAI API Key
+                            <span class="text-xs text-zinc-500 font-normal ml-1">(OPENAI_API_KEY)</span>
+                        </label>
+                        <div class="relative">
+                            <input
+                                    type="password"
+                                    class="w-full p-3 mt-1 pr-10 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    id="OPENAI_API_KEY"
+                                    name="OPENAI_API_KEY"
+                                    value="{{ config.get('OPENAI_API_KEY', '') }}"
+                            >
+                            <button
+                                    type="button"
+                                    onclick="toggleInputVisibility('OPENAI_API_KEY', this)"
+                                    class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-white"
+                            >
+                                <span class="material-icons" id="OPENAI_API_KEY_icon">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 relative">
+                        <label for="VOICE" class="block font-semibold text-sm text-slate-300">Voice Model
+                            <span class="text-xs text-zinc-500 font-normal ml-1">(VOICE)</span>
+                        </label>
+                        <select id="VOICE" name="VOICE"
+                                class="w-full p-3 mt-1 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            {% for v in config.get('VOICE_OPTIONS',[]) %}
+                            <option value="{{ v }}" {% if config.get('VOICE') == v %}selected{% endif %}>
+                            {{ v|capitalize }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Audio -->
+                <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-bold mb-4 text-slate-200">Audio Settings</h3>
+
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-icons">mic</span>
+                        <span id="mic-label" class="grow">Loading...</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="MIC_TIMEOUT_SECONDS" class="block font-semibold text-sm text-slate-300">Mic Timeout (seconds)
+                            <span class="text-xs text-zinc-500 font-normal ml-1">(MIC_TIMEOUT_SECONDS)</span>
+                        </label>
+                        <input type="number"
+                               class="w-full p-3 mt-1 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                               name="MIC_TIMEOUT_SECONDS" id="MIC_TIMEOUT_SECONDS" value="{{ config.get('MIC_TIMEOUT_SECONDS', '6') }}">
+                    </div>
+
+                    <div class="mb-4 hidden">
+                        <label for="SILENCE_THRESHOLD" class="block font-semibold text-sm text-slate-300">Silence Threshold
+                            <span class="text-xs text-zinc-500 font-normal ml-1">(SILENCE_THRESHOLD)</span>
+                        </label>
+                        <input type="number" step="1" id="SILENCE_THRESHOLD"
+                               class="w-full p-3 mt-1 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                               name="SILENCE_THRESHOLD" value="{{ config.get('SILENCE_THRESHOLD', '1') }}">
+                    </div>
+
+                    <div class="mb-4">
+                        <span class="block font-semibold text-sm text-slate-300 mb-1">Microphone level & Silence Threshold</span>
+
+                        <div class="flex gap-2">
+
+                            <!-- Mic level bar container -->
+                            <div id="mic-bar-container" class="relative mt-2 h-4 w-full rounded-full bg-zinc-700 overflow-hidden">
+                                <!-- Fill bar -->
+                                <div id="mic-level-bar"
+                                     class="absolute left-0 top-0 h-full w-0 bg-emerald-500 transition-all duration-100"
+                                ></div>
+
+                                <!-- Threshold line -->
+                                <div id="threshold-line"
+                                     class="absolute top-0 bottom-0 w-[2px] bg-red-500 cursor-ew-resize"
+                                     style="left: 10%;"
+                                     draggable="false">
+                                </div>
+                            </div>
+
+                            <button type="button" id="mic-check-btn"
+                                    class="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1 rounded shadow w-20">
+                                Test
+                            </button>
+
+                        </div>
+                    </div>
+
+                    <div class="mb-8 flex gap-2">
+                        <label for="mic-gain" class="block text-sm font-medium text-gray-200 w-20">
+                            Gain: <span id="mic-gain-value">?</span>
+                        </label>
+                        <input type="range" id="mic-gain" min="0" max="16" step="1" value="8" class="w-full">
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="material-icons">speaker</span>
+                        <span id="speaker-label" class="grow">Loading...</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="speaker-volume" class="block font-semibold text-sm text-slate-300 mb-1">
+                            Speaker Volume
+                        </label>
+                        <div class="flex gap-2 items-center">
+                            <input type="range" id="speaker-volume" min="0" max="100" value="50"
+                                   class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer">
+
+                            <button type="button" id="speaker-check-btn"
+                                    class="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1 rounded shadow w-20">
+                                Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MQTT Settings -->
+                <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-bold mb-4 text-slate-200">MQTT Settings</h3>
+
+                    {% for field in [
+                    ("MQTT_HOST", "MQTT Host"),
+                    ("MQTT_USERNAME", "MQTT Username"),
+                    ("MQTT_PASSWORD", "MQTT Password", "password")
+                    ] %}
+                    <div class="mb-4">
+                        <label for="{{ field[0] }}" class="block font-semibold text-sm text-slate-300">
+                            {{ field[1] }}
+                            <span class="text-xs text-zinc-500 font-normal ml-1">({{ field[0] }})</span>
+                        </label>
+                        <div class="relative">
+                            <input
+                                    id="{{ field[0] }}"
+                                    name="{{ field[0] }}"
+                                    type="{{ field[2] if field|length > 2 else 'text' }}"
+                                    class="w-full p-3 mt-1 pr-10 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    value="{{ config.get(field[0], '') }}"
+                            >
+                            {% if field|length > 2 and field[2] == 'password' %}
+                            <button
+                                    type="button"
+                                    onclick="toggleInputVisibility('{{ field[0] }}', this)"
+                                    class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-white"
+                            >
+                                <span class="material-icons" id="{{ field[0] }}_icon">visibility</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Home Assistant -->
+                <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-bold mb-4 text-slate-200">Home Assistant</h3>
+
+                    {% for field in [
+                    ("HA_HOST", "Home Assistant Host"),
+                    ("HA_TOKEN", "Home Assistant Token", "password")
+                    ] %}
+                    <div class="mb-4">
+                        <label for="{{ field[0] }}" class="block font-semibold text-sm text-slate-300">
+                            {{ field[1] }}
+                            <span class="text-xs text-zinc-500 font-normal ml-1">({{ field[0] }})</span>
+                        </label>
+                        <div class="relative">
+                            <input
+                                    id="{{ field[0] }}"
+                                    name="{{ field[0] }}"
+                                    type="{{ field[2] if field|length > 2 else 'text' }}"
+                                    class="w-full p-3 mt-1 pr-10 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    value="{{ config.get(field[0], '') }}"
+                            >
+                            {% if field|length > 2 and field[2] == 'password' %}
+                            <button
+                                    type="button"
+                                    onclick="toggleInputVisibility('{{ field[0] }}', this)"
+                                    class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-white"
+                            >
+                                <span class="material-icons" id="{{ field[0] }}_icon">visibility</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div>
+                        <label for="HA_LANG" class="block font-semibold text-sm text-slate-300 mb-1">Language
+                            <span class="text-xs text-zinc-500 font-normal ml-1">(HA_LANG)</span>
+                        </label>
+                        {% set ha_languages = [
+                        ('en', 'English'), ('nl', 'Dutch'), ('it', 'Italian'), ('fr', 'French'),
+                        ('de', 'German'), ('es', 'Spanish'), ('pt', 'Portuguese'), ('hi', 'Hindi'),
+                        ('ja', 'Japanese'), ('zh', 'Chinese'), ('ko', 'Korean'), ('ru', 'Russian'),
+                        ('pl', 'Polish'), ('cs', 'Czech'), ('tr', 'Turkish'), ('ro', 'Romanian'),
+                        ('uk', 'Ukrainian'), ('vi', 'Vietnamese'), ('ar', 'Arabic'), ('id', 'Indonesian')
+                        ] %}
+                        <select name="HA_LANG" id="HA_LANG"
+                                class="w-full p-3 mt-1 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                            {% for code, label in ha_languages %}
+                            <option value="{{ code }}" {% if config.get('HA_LANG') == code %}selected{% endif %}>
+                            {{ label }} ({{ code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 z-10 border-t border-black bg-black/50 backdrop-blur-[2px] shadow-[0_-4px_10px_rgba(0,0,0,0.5)] py-4 px-6">
+                    <div class="flex justify-center md:justify-start">
+                        <button type="submit"
+                                class="bg-cyan-500 hover:bg-teal-500 ttext-white font-semibold py-2 px-6 rounded shadow">
+                            Save Settings
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- Persona Column (consistent with Settings) -->
+        <section class="space-y-6">
+
+            <!-- Persona Traits -->
+            <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                <h3 class="text-lg font-bold mb-4 text-slate-200">Persona Traits</h3>
+                <div id="personality-sliders" class="space-y-4">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+
+            <!-- Backstory & Instructions -->
+            <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-lg shadow-sm">
+                <h3 class="text-lg font-bold mb-4 text-slate-200">Backstory & Instructions</h3>
+                <form id="persona-form" class="space-y-6">
+
+                    <!-- Backstory Fields -->
+                    <div>
+                        <span class="block font-semibold text-sm text-slate-300 mb-1">Backstory</span>
+                        <div id="backstory-fields" class="space-y-2"></div>
+                        <button type="button" onclick="addBackstoryField()" class="text-sm text-emerald-400 mt-2">+ Add
+                            Field
+                        </button>
+                    </div>
+
+                    <!-- Meta Instructions -->
+                    <div>
+                        <span class="block font-semibold text-sm text-slate-300 mb-1">Additional Instructions</span>
+                        <textarea name="META" id="meta-text" rows="16"
+                                  class="w-full p-3 mt-1 bg-zinc-800 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                  spellcheck="false"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 z-10 border-t border-black bg-black/50 backdrop-blur-[4px] shadow-[0_-4px_10px_rgba(0,0,0,0.5)] py-4 px-6">
+                <div class="flex justify-center md:justify-end">
+                    <button form="persona-form" type="submit"
+                            class="bg-cyan-500 hover:bg-teal-500 text-white font-semibold py-2 px-6 rounded shadow">
+                        Save Persona
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div class="hidden">
+        text-emerald-500 text-amber-500 text-rose-500
+        bg-emerald-500 hover:bg-emerald-600
+        bg-amber-500 hover:bg-amber-600
+        bg-rose-500 hover:bg-rose-600
+        bg-cyan-500 bg-zinc-800
+    </div>
+</main>
+<script src="{{ url_for('static', filename='js/config.js') }}"></script>
+</body>
+</html>
