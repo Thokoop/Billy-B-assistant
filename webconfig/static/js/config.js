@@ -5,6 +5,48 @@ const LogPanel = (() => {
     let isLogHidden = true;
     let isEnvHidden = true;
 
+    // Reboot Billy
+    const rebootBilly = async () => {
+        if (!confirm("Are you sure you want to reboot Billy? This will reboot the whole system.")) return;
+        try {
+            const res = await fetch('/reboot', {method: 'POST'});
+            const data = await res.json();
+            if (data.status === "ok") {
+                showNotification("Billy is rebooting!", "success");
+                setTimeout(() => {
+                    location.reload();
+                }, 15000);
+            }
+            else {
+                showNotification(data.error || "Reboot failed", "error");
+            }
+        } catch (err) {
+            console.error("Failed to reboot Billy:", err);
+            showNotification("Failed to reboot Billy", "error");
+        }
+    };
+
+    // Shutdown Billy
+    const shutdownBilly = async () => {
+        if (!confirm("Are you sure you want to shutdown Billy? This will completely shutdown the system!")) return;
+        try {
+            const res = await fetch('/shutdown', {method: 'POST'});
+            const data = await res.json();
+            if (data.status === "ok") {
+                showNotification("Billy is shutting down!", "success");
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }
+            else {
+                showNotification(data.error || "Shutdown failed", "error");
+            }
+        } catch (err) {
+            console.error("Failed to shutdown Billy:", err);
+            showNotification("Failed to shutdown Billy", "error");
+        }
+    };
+
     // Fetch logs and update UI
     const fetchLogs = async () => {
         const res = await fetch("/logs");
@@ -126,6 +168,8 @@ const LogPanel = (() => {
             envTextarea: document.getElementById("env-textarea"),
             saveEnvBtn: document.getElementById("save-env-btn"),
             toggleMotionBtn: document.getElementById("toggle-motion-btn"),
+            rebootBillyBtn: document.getElementById("reboot-billy-btn"),
+            shutdownBillyBtn: document.getElementById("shutdown-billy-btn"),
         };
 
         elements.toggleBtn.addEventListener("click", toggleLogPanel);
@@ -134,6 +178,8 @@ const LogPanel = (() => {
         elements.toggleEnvBtn.addEventListener("click", toggleEnvPanel);
         elements.toggleMotionBtn.addEventListener("click", toggleMotion);
         elements.saveEnvBtn.addEventListener("click", saveEnv);
+        elements.rebootBillyBtn.addEventListener("click", rebootBilly);
+        elements.shutdownBillyBtn.addEventListener("click", shutdownBilly);
 
         if (localStorage.getItem("reduceMotion") === "1") {
             document.documentElement.classList.add("reduce-motion");
